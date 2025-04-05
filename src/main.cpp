@@ -1,50 +1,52 @@
 #include <boost/beast/core.hpp>
 #include <boost/beast/http.hpp>
 #include <boost/asio.hpp>
+#include <boost/program_options.hpp>
 #include <iostream>
 #include <string>
 
 namespace beast = boost::beast;
 namespace http = beast::http;
 namespace asio = boost::asio;
+namespace po = boost::program_options;
 using tcp = asio::ip::tcp;
 
 int main(int argc, char** argv) {
-    // Parse command-line argumenfts
-    if (argc != 5) {
-        std::cerr << "Usage: caching-proxy --port <number> --origin <url>\n"
-                  << "Example:\n"
-                  << "    caching-proxy --port 3000 --origin http://dummyjson.com\n";
-        return EXIT_FAILURE;
-    }
+    try {
+        // Define the command-line options
+        po::options_description desc("Allowed options");
+        desc.add_options()
+            ("help,h", "Show help message")
+            ("port,p", po::value<std::string>()->required(), "Port number for the proxy server")
+            ("origin,o", po::value<std::string>()->required(), "Origin server URL");
 
-    std::string port;
-    std::string origin;
+        // Parse the command-line arguments
+        po::variables_map vm;
+        po::store(po::parse_command_line(argc, argv, desc), vm);
 
-    for (int i = 1; i < argc; i += 2) {
-        std::string arg = argv[i];
-        if (arg == "--port") {
-            port = argv[i + 1];
-        } else if (arg == "--origin") {
-            origin = argv[i + 1];
-        } else {
-            std::cerr << "Unknown argument: " << arg << "\n";
-            return EXIT_FAILURE;
+        // Display help message if needed
+        if (vm.count("help")) {
+            std::cout << desc << "\n";
+            return EXIT_SUCCESS;
         }
-    }
 
-    if (port.empty() || origin.empty()) {
-        std::cerr << "Both --port and --origin must be specified.\n";
+        // Notify to enforce required options
+        po::notify(vm);
+
+        // Retrieve the values
+        std::string port = vm["port"].as<std::string>();
+        std::string origin = vm["origin"].as<std::string>();
+
+        std::cout << "Starting caching proxy server...\n";
+        std::cout << "Listening on port: " << port << "\n";
+        std::cout << "Forwarding requests to origin: " << origin << "\n";
+
+        // TODO: Implement the caching proxy server logic here
+
+    } catch (const po::error& e) {
+        std::cerr << "Error: " << e.what() << "\n";
         return EXIT_FAILURE;
     }
-
-    std::cout << "Starting caching proxy server...\n";
-    std::cout << "Listening on port: " << port << "\n";
-    std::cout << "Forwarding requests to origin: " << origin << "\n";
-
-    // TODO: Implement the caching proxy server logic here
-    // This will involve setting up an Asio acceptor to listen on the specified port
-    // and forwarding requests to the specified origin using Boost.Beast.
 
     return EXIT_SUCCESS;
 }
