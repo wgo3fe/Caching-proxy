@@ -6,6 +6,8 @@
 #include <iostream>
 #include <string>
 
+#include <CacheHandler.h>
+
 namespace beast = boost::beast;
 namespace http = beast::http;
 namespace net = boost::asio;
@@ -14,7 +16,7 @@ using tcp = net::ip::tcp;
 
 int main(int argc, char **argv)
 {
-    std::string port{};
+    uint16_t port{};
     std::string origin{};
     const std::string target{"/"}; // The target path for the HTTP request, const for now
     const int version{11};         // HTTP version (1.1)
@@ -43,7 +45,7 @@ int main(int argc, char **argv)
         po::notify(vm);
 
         // Retrieve the values
-        port = vm["port"].as<std::string>();
+        port = vm["port"].as<uint16_t>();
         origin = vm["origin"].as<std::string>();
 
         std::cout << "Starting caching proxy server...\n";
@@ -56,60 +58,14 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
     }
 
-    // TODO: Implement the caching proxy server logic here
+    CacheHandler cacheHandler{};
 
-    try
-    {
-        // The io_context is required for all I/O
-        net::io_context ioc;
+    // Check if the content is already in the cache
+    cacheHandler.get(origin, port);
 
-        // These objects perform our I/O
-        tcp::resolver resolver(ioc);
-        beast::tcp_stream stream(ioc);
-
-        // Look up the domain name
-        auto const results = resolver.resolve(origin, port);
-
-        // Make the connection on the IP address we get from a lookup
-        stream.connect(results);
-
-        // Set up an HTTP GET request message
-        http::request<http::string_body> req{http::verb::get, target, version};
-        req.set(http::field::host, origin);
-        req.set(http::field::user_agent, BOOST_BEAST_VERSION_STRING);
-
-        // Send the HTTP request to the remote origin
-        http::write(stream, req);
-
-        // This buffer is used for reading and must be persisted
-        beast::flat_buffer buffer;
-
-        // Declare a container to hold the response
-        http::response<http::dynamic_body> res;
-
-        // Receive the HTTP response
-        http::read(stream, buffer, res);
-
-        // Write the message to standard out
-        std::cout << res << std::endl;
-
-        // Gracefully close the socket
-        beast::error_code ec;
-        stream.socket().shutdown(tcp::socket::shutdown_both, ec);
-
-        // not_connected happens sometimes
-        // so don't bother reporting it.
-        //
-        if (ec && ec != beast::errc::not_connected)
-            throw beast::system_error{ec};
-
-        // If we get here then the connection is closed gracefully
-    }
-    catch (std::exception const &e)
-    {
-        std::cerr << "Error: " << e.what() << std::endl;
-        return EXIT_FAILURE;
-    }
+    // If the content is not in the cache, make a request to the origin server
+    // and add it to the cache
+    //cacheHandler.add(origin, port, content);
 
     return EXIT_SUCCESS;
 }
