@@ -11,17 +11,39 @@ namespace http = beast::http;
 namespace net = boost::asio;
 using tcp = net::ip::tcp;
 
+/**
+ * @class RequestHandler
+ * @brief Handles HTTP requests and responses, forwarding them to the origin server.
+ */
 class RequestHandler {
 public:
+    /**
+     * @brief Default constructor.
+     */
     RequestHandler() = default;
+
+    /**
+     * @brief Default destructor.
+     */
     ~RequestHandler() = default;
 
-    // Forward a request to the origin server and return the response
+    /**
+     * @brief Forwards an HTTP request to the origin server and retrieves the response.
+     * @param target The target path for the HTTP request (e.g., "/api/resource").
+     * @param method The HTTP method to use (e.g., "GET", "POST"). Defaults to "GET".
+     * @return The response body as a string.
+     */
     std::string forwardRequest(const std::string& target, const std::string& method = "GET");
+
+    /**
+     * @brief Initializes the request handler with the origin server's details.
+     * @param origin The hostname or IP address of the origin server.
+     * @param port The port number of the origin server.
+     */
     void initialize(const std::string& origin, uint16_t port);
 
 private:
-    std::string _origin;
-    uint16_t _port;
-    net::io_context _ioc;
+    std::string _origin; ///< The hostname or IP address of the origin server.
+    uint16_t _port; ///< The port number of the origin server.
+    net::io_context _ioc; ///< The Boost.Asio I/O context used for network operations.
 };
