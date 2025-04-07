@@ -61,7 +61,17 @@ void CacheHandler::clear()
 void CacheHandler::readJsonFile()
 {
     boost::property_tree::ptree pt;
-    boost::property_tree::read_json("cache.json", pt);
+    std::ifstream file(CACHE_FILE);
+    if (!file)
+    {
+        return;
+    }
+
+    boost::property_tree::read_json(CACHE_FILE, pt);
+    if (pt.empty())
+    {
+        return;
+    }
 
     for (const auto &entry : pt.get_child("cache"))
     {

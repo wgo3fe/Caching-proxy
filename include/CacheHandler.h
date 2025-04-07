@@ -26,14 +26,14 @@ class CacheHandler
 {
 public:
     /**
-     * @brief Default constructor.
+     * @brief Constructor.
      */
-    CacheHandler() = default;
+    CacheHandler();
 
     /**
-     * @brief Default destructor.
+     * @brief Destructor.
      */
-    ~CacheHandler() = default;
+    ~CacheHandler();
 
     /**
      * @brief Deleted copy constructor.

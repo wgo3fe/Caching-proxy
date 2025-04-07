@@ -20,8 +20,13 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 add_executable(caching-proxy 
     src/main.cpp
     src/CacheHandler.cpp
-    #src/RequestHandler.cpp
+    src/RequestHandler.cpp
 )
+
+# Add include directories
+target_include_directories(caching-proxy PRIVATE include)
 
 # Link Boost libraries
 target_link_libraries(caching-proxy Boost::system Boost::program_options)
+
+add_definitions(-DBOOST_BIND_GLOBAL_PLACEHOLDERS)

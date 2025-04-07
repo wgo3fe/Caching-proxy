@@ -1,18 +1,13 @@
-#include <boost/beast/core.hpp>
-#include <boost/beast/http.hpp>
-#include <boost/beast/version.hpp>
-#include <boost/asio.hpp>
 #include <boost/program_options.hpp>
 #include <iostream>
 #include <string>
 
-#include <CacheHandler.h>
+#include "CacheHandler.h"
+#include "RequestHandler.h"
 
-namespace beast = boost::beast;
-namespace http = beast::http;
-namespace net = boost::asio;
+#define LOG(x) std::cout << x << "\n"
+
 namespace po = boost::program_options;
-using tcp = net::ip::tcp;
 
 int main(int argc, char **argv)
 {
@@ -37,7 +32,7 @@ int main(int argc, char **argv)
         // Display help message if needed
         if (vm.count("help"))
         {
-            std::cout << desc << "\n";
+            LOG(desc);
             return EXIT_SUCCESS;
         }
 
@@ -45,12 +40,12 @@ int main(int argc, char **argv)
         po::notify(vm);
 
         // Retrieve the values
-        port = vm["port"].as<uint16_t>();
+        port = static_cast<uint16_t>(std::stoi(vm["port"].as<std::string>()));
         origin = vm["origin"].as<std::string>();
 
-        std::cout << "Starting caching proxy server...\n";
-        std::cout << "Listening on port: " << port << "\n";
-        std::cout << "Forwarding requests to origin: " << origin << "\n";
+        LOG("Starting caching proxy server...");
+        LOG("Listening on port: " << port);
+        LOG("Forwarding requests to origin: " << origin);
     }
     catch (const po::error &e)
     {
@@ -61,11 +56,30 @@ int main(int argc, char **argv)
     CacheHandler cacheHandler{};
 
     // Check if the content is already in the cache
-    cacheHandler.get(origin, port);
+    std::string cachedPage = cacheHandler.get(origin, port);
+    if(!cachedPage.empty())
+    {
+        LOG("Cache hit! Content found in cache.");
+        LOG("Cached content: " << cachedPage);
+        return EXIT_SUCCESS;
+    }
+    LOG("Cache miss! Content not found in cache.");
 
+    
     // If the content is not in the cache, make a request to the origin server
+    RequestHandler requestHandler{};
+    requestHandler.initialize(origin, port);
+    std::string content = requestHandler.forwardRequest(target, "GET");
+    if (content.empty())
+    {
+        LOG("Failed to retrieve content from origin server.");
+        return EXIT_FAILURE;
+    }
+    LOG("Content retrieved from origin server: " << content);
+    
     // and add it to the cache
-    //cacheHandler.add(origin, port, content);
+    cacheHandler.add(origin, port, content);
+    LOG("Content added to cache.");
 
     return EXIT_SUCCESS;
 }
